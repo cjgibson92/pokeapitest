@@ -11,6 +11,7 @@ import java.util.TreeMap;
 
 import javax.servlet.http.HttpSession;
 
+import org.apache.catalina.connector.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -40,13 +41,11 @@ public class PokeApiController {
 	
 	@RequestMapping("/")
 	public String home() {
-		
-	
-			
 	
 		return "Welcome to the Pokemon Rest Api </br></br> "
-				+ "To get a list of all the pokemons call getPokedex with offset as a parameter </br>"
+				+ "To get a list of all the pokemons call getPokedex with offset as a REQUIRED parameter </br>"
 				+ "offset refers to the pokemon you want to start from. </br>"
+				+ "Example: https://project2-1656302484892.azurewebsites.net//getPokedex?offset=20 </br>"
 				+ "For performance the api will list up to 12 pokemon at once, you can change the pokemon list by changing the offset </br>"
 				+ "to get the specifics of a pokemon you will need to call 'getSpecific' </br>"
 				+ "parameter: 'pokemonId' which refers to the Id of the pokemon to get the information"
@@ -99,6 +98,7 @@ public class PokeApiController {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 				System.out.print(e.getMessage());
+				return "Hubo un error de conexion con la PokeApi";
 			}	
 	            
 	            ObjectMapper mapper = new ObjectMapper();
@@ -108,19 +108,21 @@ public class PokeApiController {
 					jsonString = mapper.writeValueAsString(pokemonList);
 				} catch (JsonProcessingException e) {
 					// TODO Auto-generated catch block
+					
 					e.printStackTrace();
+					return "Hubo un error al mapear el objeto tipo JSON";
 				}
 	            return jsonString;
 
 	    }
 	
-	private Pokemon buildPokemonForPokedex (JSONObject pokemonJson) throws JSONException {
+	private Pokemon buildPokemonForPokedex (JSONObject pokemonJson) throws JSONException, IOException {
 		Pokemon pokemon = new Pokemon();
 		ArrayList<Ability> abilities = new ArrayList<Ability>();
 		ArrayList<String> types = new ArrayList<String>();
 		URL url;
 		StringBuffer response = new StringBuffer();
-		try {
+		
             url = new URL(pokemonJson.getString("url"));
 			HttpURLConnection http = (HttpURLConnection)url.openConnection();
 			http.setRequestProperty("Accept", "application/json");
@@ -141,10 +143,7 @@ public class PokeApiController {
 				System.out.println("GET request not worked");
 			}
 			http.disconnect();
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+
 		JSONObject json = new JSONObject(response.toString());
 		JSONArray arrayJsonAbilities = json.getJSONArray("abilities");
 		for(int i = 0; i< arrayJsonAbilities.length();i++) {
@@ -179,6 +178,7 @@ public class PokeApiController {
 					pokemonToAdd = buildPokemonFromId(Integer.valueOf(pokeId));
 				}catch (Exception e) {
 					System.out.print(e.getMessage());
+					return "Hubo un error consiguiendo la informacion del pokemon especificado";
 				}
 	            ObjectMapper mapper = new ObjectMapper();
 	            //Converting the Object to JSONString
@@ -188,21 +188,19 @@ public class PokeApiController {
 				} catch (JsonProcessingException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
+					return "Hubo un error mapeando el objeto tipo Json";
 				}
 	            return jsonString;
 
 	    }
-	private Pokemon buildPokemonFromId (Integer pokeId) throws JSONException {
+	private Pokemon buildPokemonFromId (Integer pokeId) throws JSONException, IOException {
 		PokemonSpecifics pokemon = new PokemonSpecifics();
 		ArrayList<Ability> abilities = new ArrayList<Ability>();
 		ArrayList<String> types = new ArrayList<String>();
 		StringBuffer response = new StringBuffer();
 		ArrayList<String> speciesEvolution = new ArrayList<String>();
-		try {
 			response = apiCall(API_URL+"/pokemon/"+String.valueOf(pokeId));
-		}catch (Exception e) {
-			
-		}
+		
 		JSONObject json = new JSONObject(response.toString());
 		JSONArray arrayJsonAbilities = json.getJSONArray("abilities");
 		for(int i = 0; i< arrayJsonAbilities.length();i++) {
@@ -222,11 +220,8 @@ public class PokeApiController {
 		pokemon.setId(json.getInt("id"));
 		pokemon.setAbilities(abilities);
 		pokemon.setDescription("");
-		try {
-			response = apiCall(API_URL+"/pokemon-species/"+String.valueOf(pokeId));
-		}catch (Exception e) {
-			
-		}
+		response = apiCall(API_URL+"/pokemon-species/"+String.valueOf(pokeId));
+		
 		json = new JSONObject(response.toString());
 		JSONArray descriptions = json.getJSONArray("flavor_text_entries");
 		for(int i =0;i<descriptions.length();i++) {
@@ -237,11 +232,7 @@ public class PokeApiController {
 			}
 		}
 		String evolutionChainURL = json.getJSONObject("evolution_chain").getString("url");
-		try {
 			response = apiCall(evolutionChainURL);
-		}catch (Exception e) {
-			
-		}
 		json = new JSONObject(response.toString());
 		speciesEvolution.add(json.getJSONObject("chain").getJSONObject("species").getString("name"));
 		JSONArray arrayJsonEvolution = json.getJSONObject("chain").getJSONArray("evolves_to");
@@ -259,13 +250,8 @@ public class PokeApiController {
 		ArrayList<EvolucionChain> evolutionChainArray = new ArrayList<>();
 		for(String speciesName : speciesEvolution) {
 
-			try {
 				response = apiCall(API_URL+"/pokemon/"+speciesName);
-				
-				
-			}catch (Exception e) {
-				
-			}
+
 			json = new JSONObject(response.toString());
 			evolutionChainArray.add(new EvolucionChain(json.getInt("id"),json.getString("name"),json.getJSONObject("sprites").getString("front_default")));
 
