@@ -53,7 +53,7 @@ public class PokeApiController {
 				+ "</br>"
 				+ "The response will be a Json object</br>"
 				+ "</br>"
-				+ "A frontend application was develop using Vue.js it will be in the Repository but deployment has been troublesome for monetary reasons";
+				+ "A frontend application was develop using Vue.js it will be in the Repository and the url to use it is: https://mysterious-basin-99418.herokuapp.com/";
 	}
 	@Cacheable(cacheNames ="Pokedex", key="#offset")
 	@GetMapping(value = "/getPokedex")
